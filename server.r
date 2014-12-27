@@ -1,6 +1,7 @@
 # I haven't matched "13-260 Centennial Park" yet. 
 
 library(dplyr)
+library(ggmap)
 library(shiny)
 #load ggmap maps
 load("osm_map.rda")
@@ -9,7 +10,7 @@ load("voting_results.rda")
 #load polygons of precints
 load("precinct_polygons.rda")
 
-race <- "MOA Proposition #1"
+race <- "Ballot Measure 3 - 13MINW"
 
 yeses <- voting_results %>%
   filter(Race == race) %>%
@@ -42,11 +43,13 @@ sum(noes$n) - sum(yeses$n)
 
 summarized <- cbind(summarized, passed = summarized$var > .6)
 
-mapping_obj <- inner_join(registered, anc.df, by="DISTRICT")
+mapping_obj <- inner_join(summarized, anc.df, by="DISTRICT")
 
-anc <- get_map("anchorage, AK", zoom = 8)
+#anc <- get_map("anchorage, AK", zoom = 8)
 p <- ggmap(anc)
-p +  geom_polygon(data = mapping_obj, aes(long,lat,group=DISTRICT, fill = turnout))
+p +  geom_polygon(data = mapping_obj, aes(long,lat,group=DISTRICT, fill = round(var,1)), color = "black", alpha = 0.5) +
+  scale_fill_continuous(guide = guide_legend(title = "Yes on 4"))
+
 
 ggplot(data = mapping_obj, aes(long,lat,group=DISTRICT, fill = passed)) +
   geom_polygon() + geom_path(color = "white")
@@ -55,11 +58,19 @@ ggplot(data = summarized, aes(x = var)) + geom_histogram(binwidth = 0.01)
 
 ggplot(data = filter(registered, turnout > median(registered$turnout)), aes(DISTRICT, turnout)) + 
   geom_bar(stat = "identity", aes(label = DISTRICT)) +
-  coord_flip() 
+  coord_flip() +
+  labs(title = "Turnout in Anchorage Precincts - Nov. 2014",
+       y = "Percent of Registered Voters That Casted Ballots",
+       x = "Precinct")+
+  ylim(c(0, 1))
 
 ggplot(data = filter(registered, turnout <= median(registered$turnout)), aes(DISTRICT, turnout)) + 
   geom_bar(stat = "identity", aes(label = DISTRICT)) +
-  coord_flip() 
+  coord_flip() + 
+  labs(title = "Turnout in Anchorage Precincts - Nov. 2014",
+       y = "Percent of Registered Voters That Casted Ballots",
+       x = "Precinct") +
+  ylim(c(0, 1))
 
 median(summarized$var)
 mean(summarized$var)
