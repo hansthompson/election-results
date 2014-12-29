@@ -3,6 +3,7 @@
 library(dplyr)
 library(ggmap)
 library(shiny)
+library(leaflet)
 #load ggmap maps
 load("osm_map.rda")
 #load election results
@@ -10,7 +11,7 @@ load("voting_results.rda")
 #load polygons of precints
 load("precinct_polygons.rda")
 
-race <- "Ballot Measure 3 - 13MINW"
+race <- "Ballot Measure 2 - 13PSUM"
 
 yeses <- voting_results %>%
   filter(Race == race) %>%
@@ -41,14 +42,14 @@ registered$DISTRICT <- factor(registered$DISTRICT,
 
 sum(noes$n) - sum(yeses$n)
 
-summarized <- cbind(summarized, passed = summarized$var > .6)
+summarized <- cbind(summarized, passed = summarized$var > .5)
 
 mapping_obj <- inner_join(summarized, anc.df, by="DISTRICT")
 
 #anc <- get_map("anchorage, AK", zoom = 8)
 p <- ggmap(anc)
-p +  geom_polygon(data = mapping_obj, aes(long,lat,group=DISTRICT, fill = round(var,1)), color = "black", alpha = 0.5) +
-  scale_fill_continuous(guide = guide_legend(title = "Yes on 4"))
+p +  geom_polygon(data = mapping_obj, aes(long,lat,group=DISTRICT, color = factor(as.character(passed))), color = "black", alpha = 0.5) +
+  scale_fill_continuous(guide = guide_legend(title = "Yes on 2"))
 
 
 ggplot(data = mapping_obj, aes(long,lat,group=DISTRICT, fill = passed)) +
@@ -56,19 +57,19 @@ ggplot(data = mapping_obj, aes(long,lat,group=DISTRICT, fill = passed)) +
 
 ggplot(data = summarized, aes(x = var)) + geom_histogram(binwidth = 0.01)
 
-ggplot(data = filter(registered, turnout > median(registered$turnout)), aes(DISTRICT, turnout)) + 
+ggplot(data = filter(mapping_obj, var > median(mapping_obj$var)), aes(DISTRICT, var)) + 
   geom_bar(stat = "identity", aes(label = DISTRICT)) +
   coord_flip() +
-  labs(title = "Turnout in Anchorage Precincts - Nov. 2014",
-       y = "Percent of Registered Voters That Casted Ballots",
+  labs(title = "var in Anchorage Precincts - Nov. 2014",
+       y = "Percent of mapping_obj Voters That Casted Ballots",
        x = "Precinct")+
   ylim(c(0, 1))
 
-ggplot(data = filter(registered, turnout <= median(registered$turnout)), aes(DISTRICT, turnout)) + 
+ggplot(data = filter(mapping_obj, var <= median(mapping_obj$var)), aes(DISTRICT, var)) + 
   geom_bar(stat = "identity", aes(label = DISTRICT)) +
   coord_flip() + 
-  labs(title = "Turnout in Anchorage Precincts - Nov. 2014",
-       y = "Percent of Registered Voters That Casted Ballots",
+  labs(title = "var in Anchorage Precincts - Nov. 2014",
+       y = "Percent of mapping_obj Voters That Casted Ballots",
        x = "Precinct") +
   ylim(c(0, 1))
 
