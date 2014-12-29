@@ -1,3 +1,6 @@
+#library(devtools)
+#install_github("ShinyDash", "trestletech")
+#install_github("leaflet", "jcheng5")
 library(leaflet)
 library(ShinyDash)
 
