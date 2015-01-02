@@ -88,7 +88,7 @@ for(i in seq(levels(mapping_obj$DISTRICT))) {
 
 
 save(big_list,  property_list, district_polygons, file = "test2/big_list.rda")
-fileConn<-file("test2/district_polygons.json")
+fileConn<-file("test2/district_polygons.geojson")
 writeLines(toJSON(district_polygons, digits = 9, pretty = T), fileConn)
 close(fileConn)
 
