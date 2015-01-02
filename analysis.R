@@ -9,6 +9,18 @@ dat <- read.table("results-precinct.txt",
                row.names = NULL)
 dat <- dat[,c(1,2,3,4,6)]
 
+substrRight <- function(x, n){
+  substr(x, nchar(x)-n+1, nchar(x))
+}
+
+match_senate <- data.frame(Senate = substrRight(as.character(dat[str_detect(dat$Race, "SENATE"),]$Race), 1),
+                           DISTRICT = dat[str_detect(dat$Race, "SENATE"),]$DISTRICT)
+
+match_house <- data.frame(House = as.numeric(substrRight(as.character(dat[str_detect(dat$Race, "HOUSE"),]$Race), 2)),
+                           DISTRICT = dat[str_detect(dat$Race, "HOUSE"),]$DISTRICT)
+
+
+
 dat <- dat[str_detect(dat$Race, "MOA Proposition #1") |
 #             str_detect(dat$Race, "UNITED STATES SENATOR") |
 #             str_detect(dat$Race, "US REPRESENTATIVE") |
@@ -19,7 +31,7 @@ dat <- dat[str_detect(dat$Race, "MOA Proposition #1") |
 
 voting_precincts <- levels(factor(str_split_fixed(dat$DISTRICT, " ", 2)[,1]))
 voting_precincts <- voting_precincts[voting_precincts != "District"]
- 
+
 names_to_change <- read.csv("change_district_names_from_voting_to_map.csv")
 
 dat <- dat[dat$DISTRICT %in% names_to_change$voting,]
@@ -29,6 +41,10 @@ dat <- dat[dat$Value !=  "Number of Precincts for Race" &
            dat$Value !=   "Times Counted",]
 
 dat <- dat[,-4]
+
+dat <- inner_join(dat, match_senate, by = "DISTRICT")
+dat <- inner_join(dat, match_house, by = "DISTRICT")
+
 
 dat %>%
   group_by(Race, Precinct) %>% 

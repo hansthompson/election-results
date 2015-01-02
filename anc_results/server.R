@@ -78,25 +78,30 @@ shinyServer(function(input, output, session) {
   })
   
   radiusFactor <- 1000
+
   observe({
     map$clearShapes()
     cities <- topCitiesInBounds()
 
     if (nrow(cities) == 0)
       return()
-    
+
     map$addCircle(
-      cities$Lat,
-      cities$Long,
-      sqrt(cities[[popCol()]]) * radiusFactor / max(5, input$map_zoom)^2,
-      row.names(cities),
-      list(
+      lat = cities$Lat,
+      lng = cities$Long,
+      radius = sqrt(cities[[popCol()]]) * radiusFactor / max(5, input$map_zoom)^2,
+      layerId = row.names(cities),
+      options = list(
         weight=1.2,
         fill=TRUE,
         color='#4A9'
       )
     )
   })
+  
+  
+
+  
   
   observe({
     event <- input$map_shape_click
