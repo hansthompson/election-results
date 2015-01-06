@@ -1,6 +1,14 @@
 library(leaflet)
-library(ggplot2)
 library(maps)
+library(dplyr)
+library(ggmap)
+library(shiny)
+#load ggmap maps
+load("osm_map.rda")
+#load election results
+load("voting_results.rda")
+#load polygons of precints
+load("precinct_polygons.rda")
 
 data(uspop2000)
 
@@ -158,18 +166,45 @@ shinyServer(function(input, output, session) {
   })
   
   output$cityTimeSeries <- renderPlot({
-    cities <- NULL
-    if (!is.null(selectedCity))
-      cities <- selectedCity
-    else
-      cities <- topCitiesInBounds()
-
-    popData <- popSeries(cities) / 1000
-    df <- data.frame(year = c(2000:2010), pop = popData)
-    p <- ggplot(df, aes(x = year, y = pop)) + geom_line()
-    p <- p + ylim(c(0, max(popData)))
-    p <- p + ylab('Population (thousands)')
-    p <- p + scale_x_continuous(breaks = seq(2000, 2010, 2))
+    race <- "Ballot Measure 2 - 13PSUM"
+    
+    yeses <- voting_results %>%
+      filter(Race == race) %>%
+      filter(Value == "YES") %>%
+      select(n)
+    
+    noes <- voting_results %>%
+      filter(Race == race) %>%
+      filter(Value == "NO") %>%
+      select(n, DISTRICT)
+    
+    registered <- voting_results %>%
+      filter(Race == race) %>%
+      filter(Value == "Registered Voters") %>%
+      select(n, DISTRICT)  
+    
+    summarized <- cbind(registered, var = yeses$n  / (noes$n + yeses$n))
+    summarized$DISTRICT <- factor(summarized$DISTRICT)
+    summarized <- arrange(summarized, var)
+    summarized$DISTRICT <- factor(summarized$DISTRICT,
+                                  levels = as.character(summarized$DISTRICT)) 
+    
+    registered <- cbind(registered, turnout = (noes$n + yeses$n) / registered$n)
+    registered$DISTRICT <- factor(registered$DISTRICT)
+    registered <- arrange(registered, turnout)
+    registered$DISTRICT <- factor(registered$DISTRICT,
+                                  levels = as.character(registered$DISTRICT)) 
+    
+    sum(noes$n) - sum(yeses$n)
+    
+    summarized <- cbind(summarized, passed = summarized$var > .5)
+    
+    mapping_obj <- inner_join(summarized, anc.df, by="DISTRICT")
+    
+    #anc <- get_map("anchorage, AK", zoom = 8)
+    p <- ggmap(anc)
+    P <- p +  geom_polygon(data = mapping_obj, aes(long,lat,group=DISTRICT, color = factor(as.character(passed))), color = "black", alpha = 0.5) +
+      scale_fill_continuous(guide = guide_legend(title = "Yes on 2"))
     print(p)
   })
 })
